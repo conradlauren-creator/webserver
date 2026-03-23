@@ -34,17 +34,46 @@ try:
         print('Connected by', addr)
         i = 0
         while (i < 10): #True:
-            http_request = conn.recv(1024).decode('utf-8', errors='ignore')
+            raw_http_request = conn.recv(1024).decode('utf-8', errors='ignore')
+            lines = raw_http_request.split('\r\n')
+
+            http_request_line = lines[0] 
+
+            method, path, version = http_request_line.split()
+         
+            headers = {}
+            for line in lines[1:]:
+                if (line == ""): #Empty line signifies end of headers section
+                    break
+                key, value = line.split(":", 1)
+                key.split()
+                value.split()
+                headers[key] = value
 
 
-            if not http_request: break
+                body = "BALLS" 
 
-            http_request.split();
+                # Full HTTP response
+                response = (
+                    f"HTTP/1.1 200 OK\r\n"
+                    f"Content-Type: text/plain\r\n"
+                    f"Content-Length: {len(body)}\r\n"
+                    f"\r\n"
+                    f"{body}"
+                )
+
+            conn.send(response.encode('utf-8'))
+
+    
 
 
-            print("===== Raw HTTP Request ====")
-            print(http_request)
+#FEATURE: Secure directory so that users cannot access elements outside the servers files
+
             i = i + 1
+
+# Method get_response() -> returns replies with standarad http format
+
+
 
 except Exception as e:
     print("Error:", e)
