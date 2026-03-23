@@ -1,4 +1,5 @@
 # Skeleton program
+from pathlib import Path
 import socket
 import sys
 import os
@@ -47,34 +48,49 @@ try:
                 if (line == ""): #Empty line signifies end of headers section
                     break
                 key, value = line.split(":", 1)
-                key.split()
-                value.split()
+                key = key.strip()
+                value = value.strip()
                 headers[key] = value
 
 
-                body = "hey girl heyyy" 
+            body = "hey girl heyyy" 
 
-                # Full HTTP response
-                response = (
-                    f"HTTP/1.1 200 OK\r\n"
-                    f"Content-Type: text/plain\r\n"
-                    f"Content-Length: {len(body)}\r\n"
-                    f"\r\n"
-                    f"{body}"
-                )
-
-            conn.send(response.encode('utf-8'))
+           
 
     
 
 
 #FEATURE: Secure directory so that users cannot access elements outside the servers files
 
-            i = i + 1
+        
 
 # Method get_response() -> returns replies with standarad http format
+        # start of lauren's work .°⊹˙⋆🖳₊˚⊹.............
+            server_root = "server_files"
+
+            stripped_path = path.lstrip("/")
+            full_path = os.path.join(server_root, stripped_path)
+        
+            if os.path.exists(full_path) :
+                body = Path(full_path).read_text()
+            else:
+                print("The path doesn't exist :(")
+        # end of lauren's work .°⊹˙⋆🖳₊˚⊹...............
 
 
+        # Full HTTP response
+            response = (
+                f"HTTP/1.1 200 OK\r\n"
+                f"Content-Type: text/plain\r\n"
+                f"Content-Length: {len(body)}\r\n"
+                f"\r\n"
+                f"{body}"
+                )
 
+            conn.send(response.encode('utf-8'))
+ 
+            i = i + 1
+
+#erm i'm not sure whats happening here so i'm making it a comment
 except Exception as e:
-    print("Error:", e)
+   print("Error:", e)
