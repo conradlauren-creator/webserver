@@ -7,6 +7,7 @@ MAX_CONCURRENT_CONNECTIONS = 5
 HOST = None               # Symbolic name meaning all available interfaces
 PORT = 50000              # Arbitrary non-privileged port
 s = None
+
 for res in socket.getaddrinfo(HOST, PORT, socket.AF_UNSPEC,
                               socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
     af, socktype, proto, canonname, sa = res
@@ -51,7 +52,7 @@ try:
                 headers[key] = value
 
 
-                body = "BALLS" 
+                body = "hey girl heyyy" 
 
                 # Full HTTP response
                 response = (
