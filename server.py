@@ -75,6 +75,13 @@ try:
                 body = Path(full_path).read_text()
             else:
                 print("The path doesn't exist :(")
+                response = (
+                f"HTTP/1.1 404 Not Found\r\n"
+                f"Content-Type: text/plain\r\n"
+                f"Content-Length: 0\r\n"
+                f"\r\n"
+                )
+
         # end of lauren's work .°⊹˙⋆🖳₊˚⊹...............
 
 
