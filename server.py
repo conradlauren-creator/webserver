@@ -8,6 +8,7 @@ MAX_CONCURRENT_CONNECTIONS = 5
 HOST = None               # Symbolic name meaning all available interfaces
 PORT = 50000              # Arbitrary non-privileged port
 s = None
+server_root = "server_files"
 
 for res in socket.getaddrinfo(HOST, PORT, socket.AF_UNSPEC,
                               socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
@@ -53,49 +54,69 @@ try:
                 headers[key] = value
 
 
-            body = "hey girl heyyy" 
-
-           
-
-    
-
-
 #FEATURE: Secure directory so that users cannot access elements outside the servers files
 
         
 
 # Method get_response() -> returns replies with standarad http format
-        # start of lauren's work .°⊹˙⋆🖳₊˚⊹.............
-            server_root = "server_files"
 
             stripped_path = path.lstrip("/")
             full_path = os.path.join(server_root, stripped_path)
         
-            if os.path.exists(full_path) :
-                body = Path(full_path).read_text()
+        #˙⊹° GET.°⊹˙⋆🖳₊˚⊹.
+            if method == 'GET':
+                if os.path.exists(full_path):
+                    body = Path(full_path).read_text()
+                
+                    response = (
+                    f"HTTP/1.1 200 OK\r\n"
+                    f"Content-Type: text/plain\r\n"
+                    f"Content-Length: {len(body)}\r\n"
+                    f"\r\n"
+                    f"{body}"
+                    )
+
+                else:
+                    #note: it's always gonna produce a 404 error for favicon since we don't have one
+                    print(full_path, " was expected but couldn't be found.")
+                    response = (
+                    f"HTTP/1.1 404 Not Found\r\n"
+                    f"Content-Type: text/plain\r\n"
+                    f"Content-Length: 0\r\n"
+                    f"\r\n"
+                    )
+
+        #˙⊹° HEAD.°⊹˙⋆🖳₊˚⊹.
+            elif method == 'HEAD':
+                if os.path.exists(full_path):
+                
+                    response = (
+                    f"HTTP/1.1 200 OK\r\n"
+                    f"Content-Type: text/plain\r\n"
+                    f"Content-Length: {len(body)}\r\n"
+                    f"\r\n"
+                    )
+
+                else:
+                    print(full_path, " was expected but couldn't be found.")
+                    response = (
+                    f"HTTP/1.1 404 Not Found\r\n"
+                    f"Content-Type: text/plain\r\n"
+                    f"Content-Length: 0\r\n"
+                    f"\r\n"
+                    )
+
             else:
-                print("The path doesn't exist :(")
+                print("501 Error: Not Implemented.")
                 response = (
-                f"HTTP/1.1 404 Not Found\r\n"
+                f"HTTP/1.1 501 Not Implemented\r\n"
                 f"Content-Type: text/plain\r\n"
                 f"Content-Length: 0\r\n"
                 f"\r\n"
                 )
 
-        # end of lauren's work .°⊹˙⋆🖳₊˚⊹...............
-
-
-        # Full HTTP response
-            response = (
-                f"HTTP/1.1 200 OK\r\n"
-                f"Content-Type: text/plain\r\n"
-                f"Content-Length: {len(body)}\r\n"
-                f"\r\n"
-                f"{body}"
-                )
-
+            print(raw_http_request)
             conn.send(response.encode('utf-8'))
- 
             i = i + 1
 
 #erm i'm not sure whats happening here so i'm making it a comment
