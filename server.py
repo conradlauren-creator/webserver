@@ -36,6 +36,7 @@ class HTTPServer:
                 s = None
                 continue
             break
+
         if s is None:
             print('could not open socket')
             sys.exit(HTTPServer.MAX_CONCURRENT_CONNECTIONS)
@@ -46,6 +47,7 @@ class HTTPServer:
             with conn:
                 print('Connected by', addr)
                 i = 0
+
                 while (True): 
                     
                     raw_http_request = conn.recv(1024).decode('utf-8', errors='ignore')
@@ -53,9 +55,7 @@ class HTTPServer:
                         break
 
                     lines = raw_http_request.split('\r\n')
-
                     http_request_line = lines[0] 
-
                     method, path, version = http_request_line.split()
 
                     headers = {}
@@ -67,32 +67,29 @@ class HTTPServer:
                         value = value.strip()
                         headers[key] = value
 
-        #FEATURE: Secure directory so that users cannot access elements outside the servers files
 
                     stripped_path = path.lstrip("/")
                     full_path = os.path.join(HTTPServer.server_root, stripped_path)
-                    
+
+        #FEATURE: Secure directory so that users cannot access elements outside the servers files            
                 
                 # FORBIDDEN: 403 ERROR
                     if "..\\" in path or "../" in path:
-                        print("403 Error: Forbidden.")
-                        
+                        print("403 Forbidden")
                         firstLine = "403 Forbidden"
                         response = HTTPServer.responses(firstLine, "")
                         
                 #˙⊹° GET.°⊹˙⋆🖳₊˚⊹.
                     elif method == 'GET':
                         if os.path.exists(full_path):
-
                             body = Path(full_path).read_text()
-                            
+
                             firstLine = "200 OK"
                             response = HTTPServer.responses(firstLine, body)
 
                         else:
                             #note: it's prob always gonna produce a 404 error for favicon since we don't have one
-                            print(full_path, " was expected but couldn't be found.")
-                            
+                            print(full_path, " was expected but couldn't be found.\n")
                             firstLine = "404 Not Found"
                             response = HTTPServer.responses(firstLine, "")
                             
@@ -100,20 +97,19 @@ class HTTPServer:
                 #˙⊹° HEAD.°⊹˙⋆🖳₊˚⊹.
                     elif method == 'HEAD':
                         if os.path.exists(full_path):
-                        
                             body = Path(full_path).read_text()
-                
+
                             firstLine = "200 OK"
                             response = HTTPServer.responses(firstLine, "")
 
                         else:
                             print(full_path, " was expected but couldn't be found.")
-                            
                             firstLine = "404 Not Found"
                             response = HTTPServer.responses(firstLine, "")
 
-                #˙⊹° NEITHER: 501 ERROR .°⊹˙⋆🖳₊˚⊹.
+                # NEITHER: 501 ERROR
                     else:
+                        print("501 Not Implemented")
                         firstLine = "501 Not Implemented"
                         response = HTTPServer.responses(firstLine, "")
 
