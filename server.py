@@ -50,7 +50,7 @@ try:
             http_request_line = lines[0] 
 
             method, path, version = http_request_line.split()
-         
+
             headers = {}
             for line in lines[1:]:
                 if (line == ""): #Empty line signifies end of headers section
@@ -60,19 +60,26 @@ try:
                 value = value.strip()
                 headers[key] = value
 
-
 #FEATURE: Secure directory so that users cannot access elements outside the servers files
 
-        
-
-# Method get_response() -> returns replies with standarad http format
 
             stripped_path = path.lstrip("/")
             full_path = os.path.join(server_root, stripped_path)
             date = datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
         
+        #˙⊹° FORBIDDEN: 403 ERROR .°⊹˙⋆🖳₊˚⊹.
+            if "..\\" in path or "../" in path:
+                 response = (
+                    f"HTTP/1.1 403 Forbidden\r\n"
+                    f"Content-Type: text/plain\r\n"
+                    f"Content-Length: 0\r\n"
+                    f"Server: HudsonAndLaurensServer\r\n"
+                    f"Date: {date}\r\n"
+                    f"\r\n"
+                    )
+                 
         #˙⊹° GET.°⊹˙⋆🖳₊˚⊹.
-            if method == 'GET':
+            elif method == 'GET':
                 if os.path.exists(full_path):
 
                     body = Path(full_path).read_text()
@@ -123,6 +130,7 @@ try:
                     f"\r\n"
                     )
 
+        #˙⊹° NEITHER: 501 ERROR .°⊹˙⋆🖳₊˚⊹.
             else:
                 print("501 Error: Not Implemented.")
                 response = (
