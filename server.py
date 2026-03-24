@@ -1,5 +1,8 @@
 # Skeleton program
+# for testing: http://localhost:50000/index.txt
+
 from pathlib import Path
+from datetime import datetime, timezone
 import socket
 import sys
 import os
@@ -36,8 +39,12 @@ try:
     with conn:
         print('Connected by', addr)
         i = 0
-        while (i < 10): #True:
+        while (True): 
+            
             raw_http_request = conn.recv(1024).decode('utf-8', errors='ignore')
+            if not raw_http_request:
+                break
+
             lines = raw_http_request.split('\r\n')
 
             http_request_line = lines[0] 
@@ -62,16 +69,19 @@ try:
 
             stripped_path = path.lstrip("/")
             full_path = os.path.join(server_root, stripped_path)
+            date = datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
         
         #˙⊹° GET.°⊹˙⋆🖳₊˚⊹.
             if method == 'GET':
                 if os.path.exists(full_path):
+
                     body = Path(full_path).read_text()
-                
                     response = (
                     f"HTTP/1.1 200 OK\r\n"
                     f"Content-Type: text/plain\r\n"
                     f"Content-Length: {len(body)}\r\n"
+                    f"Server: HudsonAndLaurensServer\r\n"
+                    f"Date: {date}\r\n"
                     f"\r\n"
                     f"{body}"
                     )
@@ -83,6 +93,8 @@ try:
                     f"HTTP/1.1 404 Not Found\r\n"
                     f"Content-Type: text/plain\r\n"
                     f"Content-Length: 0\r\n"
+                    f"Server: HudsonAndLaurensServer\r\n"
+                    f"Date: {date}\r\n"
                     f"\r\n"
                     )
 
@@ -90,10 +102,13 @@ try:
             elif method == 'HEAD':
                 if os.path.exists(full_path):
                 
+                    body = Path(full_path).read_text()
                     response = (
                     f"HTTP/1.1 200 OK\r\n"
                     f"Content-Type: text/plain\r\n"
                     f"Content-Length: {len(body)}\r\n"
+                    f"Server: HudsonAndLaurensServer\r\n"
+                    f"Date: {date}\r\n"
                     f"\r\n"
                     )
 
@@ -103,6 +118,8 @@ try:
                     f"HTTP/1.1 404 Not Found\r\n"
                     f"Content-Type: text/plain\r\n"
                     f"Content-Length: 0\r\n"
+                    f"Server: HudsonAndLaurensServer\r\n"
+                    f"Date: {date}\r\n"
                     f"\r\n"
                     )
 
@@ -112,13 +129,13 @@ try:
                 f"HTTP/1.1 501 Not Implemented\r\n"
                 f"Content-Type: text/plain\r\n"
                 f"Content-Length: 0\r\n"
+                f"Server: HudsonAndLaurensServer\r\n"
+                f"Date: {date}\r\n"
                 f"\r\n"
                 )
 
             print(raw_http_request)
             conn.send(response.encode('utf-8'))
-            i = i + 1
 
-#erm i'm not sure whats happening here so i'm making it a comment
 except Exception as e:
    print("Error:", e)
