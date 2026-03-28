@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 import socket
 import sys
 import os
+import threading
 
 class HTTPServer:
     MAX_CONCURRENT_CONNECTIONS = 5
@@ -41,99 +42,109 @@ class HTTPServer:
         if s is None:
             print('could not open socket')
             sys.exit(HTTPServer.MAX_CONCURRENT_CONNECTIONS)
-        conn, addr = s.accept()
+
+        while True:
+            conn, addr = s.accept()  # wait for client
+            threading.Thread(target=HTTPServer.handle_client, args=(conn, addr)).start()
 
 
-        try:
-            with conn:
-                print('Connected by', addr)
-                i = 0
+    def handle_client(conn, addr):
+        with conn:
+            print('Connected by', addr)
+            i = 0
 
-                while (True): 
-                    
-                    raw_http_request = conn.recv(1024).decode('utf-8', errors='ignore')
-                    if not raw_http_request:
+            while (True): 
+                raw_http_request = conn.recv(1024).decode('utf-8', errors='ignore')
+                if not raw_http_request:
+                    break
+
+                lines = raw_http_request.split('\r\n')
+                http_request_line = lines[0] 
+                method, path, version = http_request_line.split()
+
+                headers = {}
+                for line in lines[1:]:
+                    if (line == ""): #Empty line signifies end of headers section
                         break
-
-                    lines = raw_http_request.split('\r\n')
-                    http_request_line = lines[0] 
-                    method, path, version = http_request_line.split()
-
-                    headers = {}
-                    for line in lines[1:]:
-                        if (line == ""): #Empty line signifies end of headers section
-                            break
-                        key, value = line.split(":", 1)
-                        key = key.strip()
-                        value = value.strip()
-                        headers[key] = value
+                    key, value = line.split(":", 1)
+                    key = key.strip()
+                    value = value.strip()
+                    headers[key] = value
 
 
-                    stripped_path = path.lstrip("/")
-                    full_path = os.path.join(HTTPServer.server_root, stripped_path)
+                stripped_path = path.lstrip("/")
+                full_path = os.path.join(HTTPServer.server_root, stripped_path)
 
-                
                 # FORBIDDEN: 403 ERROR
+                abs_root = os.path.abspath(HTTPServer.server_root)
+                abs_full = os.path.abspath(full_path)
 
-                    abs_root = os.path.abspath(HTTPServer.server_root)
-                    abs_full = os.path.abspath(full_path)
+                if "..\\" in path or "../" in path or not abs_full.startswith(abs_root):
+                    print("403 Forbidden")
+                    firstLine = "403 Forbidden"
+                    response = HTTPServer.responses(firstLine, "", "")
 
-                    if "..\\" in path or "../" in path or not abs_full.startswith(abs_root):
-                        print("403 Forbidden")
-                        firstLine = "403 Forbidden"
-                        response = HTTPServer.responses(firstLine, "", "")
+                # GET
+                elif method == "GET":
+                    if os.path.isdir(full_path):
+                        full_path = os.path.join(full_path, "index.txt")
+                    if os.path.exists(full_path) and os.path.isfile(full_path): 
+                        body = Path(full_path).read_text()
 
+                        file_modtime =os.path.getmtime(full_path)
+                        timestamp = datetime.fromtimestamp(file_modtime).strftime('%a, %d %b %Y %H:%M:%S GMT')
+
+                        if "If-Modified-Since" in headers:
+                            try:
+                                client_time = datetime.strptime(
+                                        headers["If-Modified-Since"],
+                                        '%a, %d %b %Y %H:%M:%S GMT'
+                                        ).timestamp()
+                                
+                                if int(file_modtime) <= int(client_time):
+                                    firstLine = "304 Not Modified"
+                                    response = HTTPServer.responses(firstLine, "", "")
+                                    conn.send(response.encode('utf-8'))
+                                    continue
+                            except Exception as e:
+                                print("Error when parsing If-Modified-Since header: ", e)
                         
-                #˙⊹° GET.°⊹˙⋆🖳₊˚⊹.
-                    elif method == 'GET':
-                        if os.path.exists(full_path):
-                            body = Path(full_path).read_text()
-                            timestamp = datetime.fromtimestamp(os.path.getmtime(full_path)).strftime('%a, %d %b %Y %H:%M:%S GMT')
-                            
-                            firstLine = "200 OK"
-                            response = HTTPServer.responses(firstLine, body, timestamp)
+                        firstLine = "200 OK"
+                        response = HTTPServer.responses(firstLine, body, timestamp)
 
-
-
-                        else:
-                            # NOT FOUND : 404 ERROR
-                            #note: it's prob always gonna produce a 404 error for favicon since we don't have one
-                            print(full_path, " was expected but couldn't be found.\n")
-                            firstLine = "404 Not Found"
-                            response = HTTPServer.responses(firstLine, "", "")
-                            
+                    else:
+                        print(full_path, " was expected but couldn't be found.\n")
+                        firstLine = "404 Not Found"
+                        response = HTTPServer.responses(firstLine, "", "")
 
                 #˙⊹° HEAD.°⊹˙⋆🖳₊˚⊹.
-                    elif method == 'HEAD':
-                        if os.path.exists(full_path):
-                            body = Path(full_path).read_text()
-                            timestamp = datetime.fromtimestamp(os.path.getmtime(full_path)).strftime('%a, %d %b %Y %H:%M:%S GMT')
-                            
-                            firstLine = "200 OK"
-                            response = HTTPServer.responses(firstLine, "", timestamp)
+                elif method == 'HEAD':
+                    if os.path.isdir(full_path):
+                        full_path = os.path.join(full_path, "index.txt")
+                    if os.path.exists(full_path) and os.path.isfile(full_path):
+                        timestamp = datetime.fromtimestamp(os.path.getmtime(full_path)).strftime('%a, %d %b %Y %H:%M:%S GMT')
+                        firstLine = "200 OK"
+                        response = HTTPServer.responses(firstLine, "", timestamp)
 
-
-                        else:
-                            print(full_path, " was expected but couldn't be found.")
-                            firstLine = "404 Not Found"
-                            response = HTTPServer.responses(firstLine, "", "")
-
-                # NEITHER: 501 ERROR
                     else:
-                        print("501 Not Implemented")
-                        firstLine = "501 Not Implemented"
+                        # NOT FOUND : 404 ERROR
+                        #note: it's prob always gonna produce a 404 error for favicon since we don't have one
+                        print(full_path, " was expected but couldn't be found.\n")
+                        firstLine = "404 Not Found"
                         response = HTTPServer.responses(firstLine, "", "")
 
-                    #responses shared by all 
-                    print(raw_http_request)
-                    conn.send(response.encode('utf-8'))
-                    if headers.get("Connection", "").lower() == "close":
-                        break
 
-        except Exception as e:
-            print("Error:", e)
+                else:
+                   print("501 Not Implemented")
+                   firstLine = "501 Not Implemented"
+                   response = HTTPServer.responses(firstLine, "", "")
 
-
+                
+                #responses shared by all 
+                print(raw_http_request)
+                conn.send(response.encode('utf-8'))
+                if headers.get("Connection", "").lower() == "close":
+                    break
 
 
     #new method starts here and includes this
