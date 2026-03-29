@@ -48,6 +48,7 @@ class HTTPServer:
             threading.Thread(target=HTTPServer.handle_client, args=(conn, addr)).start()
 
 
+    @staticmethod
     def handle_client(conn, addr):
         with conn:
             print('Connected by', addr)
